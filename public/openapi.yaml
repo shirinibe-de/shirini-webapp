@@ -1,0 +1,838 @@
+openapi: 3.0.3
+info:
+  title: Shirini Bede API
+  description: |
+    A REST API for tracking social debts (shirini) in teams.
+
+    Shirini Bede is a fun web app for programmer teams to track social debts — called *shirini* —
+    when team members achieve something worth celebrating (first deploy, new phone, etc.).
+  version: 1.0.0
+  contact:
+    name: Shirini Bede
+    url: https://github.com/shirinibe-de
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.shirini.dev/api/v1
+    description: Production server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token issued by the backend. Payload contains { sub, email, name, exp }
+
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+        email:
+          type: string
+          format: email
+          description: User's email address
+        name:
+          type: string
+          description: User's display name
+        avatar_url:
+          type: string
+          format: uri
+          description: URL to user's profile avatar
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when user was created
+
+    Team:
+      type: object
+      required:
+        - id
+        - name
+        - currency
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique team identifier
+        name:
+          type: string
+          description: Team name
+        currency:
+          type: string
+          description: The unit of currency for this team (e.g., "slice of pizza")
+        invite_token:
+          type: string
+          description: Token used to generate invite links
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when team was created
+
+    TeamDetails:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          properties:
+            member_count:
+              type: integer
+              description: Number of members in the team
+
+    TeamMember:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            joined_at:
+              type: string
+              format: date-time
+              description: Timestamp when member joined the team
+
+    AchievementType:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique achievement type identifier
+        name:
+          type: string
+          description: Name of the achievement (e.g., "First deploy to production")
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when achievement type was created
+
+    Vote:
+      type: object
+      required:
+        - approve
+        - reject
+        - my_vote
+      properties:
+        approve:
+          type: integer
+          description: Number of approve votes
+        reject:
+          type: integer
+          description: Number of reject votes
+        my_vote:
+          type: string
+          enum:
+            - approve
+            - reject
+            - null
+          nullable: true
+          description: Current user's vote on this claim
+
+    Claim:
+      type: object
+      required:
+        - id
+        - claimer
+        - claimed_user
+        - achievement_type
+        - quantity
+        - status
+        - votes
+        - expires_at
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique claim identifier
+        claimer:
+          $ref: '#/components/schemas/User'
+          description: User who made the claim
+        claimed_user:
+          $ref: '#/components/schemas/User'
+          description: User against whom the claim was made
+        achievement_type:
+          $ref: '#/components/schemas/AchievementType'
+          description: Type of achievement
+        quantity:
+          type: integer
+          minimum: 1
+          description: Amount of currency owed
+        status:
+          type: string
+          enum:
+            - pending
+            - approved
+            - rejected
+            - expired
+          description: Current status of the claim
+        votes:
+          $ref: '#/components/schemas/Vote'
+          description: Vote information
+        expires_at:
+          type: string
+          format: date-time
+          description: Timestamp when the claim expires if no resolution
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when claim was created
+
+    Debt:
+      type: object
+      required:
+        - user
+        - total_debt
+        - currency
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+          description: User owing debt
+        total_debt:
+          type: integer
+          minimum: 0
+          description: Total amount of currency owed
+        currency:
+          type: string
+          description: Currency unit for this team
+
+    Settlement:
+      type: object
+      required:
+        - debtor_id
+        - previous_debt
+        - settled_at
+      properties:
+        debtor_id:
+          type: string
+          format: uuid
+          description: User whose debt was settled
+        previous_debt:
+          type: integer
+          description: Amount of debt that was settled
+        settled_at:
+          type: string
+          format: date-time
+          description: Timestamp when settlement occurred
+
+    InviteInfo:
+      type: object
+      required:
+        - team_id
+        - team_name
+        - currency
+      properties:
+        team_id:
+          type: string
+          format: uuid
+          description: ID of the team being invited to
+        team_name:
+          type: string
+          description: Name of the team
+        currency:
+          type: string
+          description: Currency unit of the team
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/google:
+    get:
+      summary: Initiate Google OAuth flow
+      operationId: initiateGoogleOAuth
+      security: []
+      parameters:
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: URL to redirect to after authentication
+      tags:
+        - Authentication
+      responses:
+        '302':
+          description: Redirect to Google consent page
+
+  /auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      operationId: googleOAuthCallback
+      security: []
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+          description: OAuth authorization code from Google
+        - name: error
+          in: query
+          schema:
+            type: string
+          description: Error message if authentication failed
+      tags:
+        - Authentication
+      responses:
+        '302':
+          description: Redirect with token or error
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user
+      operationId: getCurrentUser
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams:
+    get:
+      summary: List all teams for current user
+      operationId: listTeams
+      tags:
+        - Teams
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a new team
+      operationId: createTeam
+      tags:
+        - Teams
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - currency
+              properties:
+                name:
+                  type: string
+                  description: Team name
+                currency:
+                  type: string
+                  description: Currency unit for this team
+      responses:
+        '201':
+          description: Team created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams/{team_id}:
+    get:
+      summary: Get team details
+      operationId: getTeamDetails
+      tags:
+        - Teams
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Team details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamDetails'
+        '403':
+          description: Not a team member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams/{team_id}/members:
+    get:
+      summary: List team members
+      operationId: listTeamMembers
+      tags:
+        - Teams
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of team members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMember'
+        '403':
+          description: Not a team member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /invites/{token}:
+    get:
+      summary: Resolve invite token to team info
+      operationId: resolveInvite
+      security: []
+      tags:
+        - Invites
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invite information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteInfo'
+        '404':
+          description: Invalid invite token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /invites/{token}/accept:
+    post:
+      summary: Accept an invite and join the team
+      operationId: acceptInvite
+      tags:
+        - Invites
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully joined team
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_id:
+                    type: string
+                    format: uuid
+                  team_name:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Invalid invite token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams/{team_id}/achievement-types:
+    get:
+      summary: List achievement types for a team
+      operationId: listAchievementTypes
+      tags:
+        - Achievement Types
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of achievement types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AchievementType'
+        '403':
+          description: Not a team member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a new achievement type
+      operationId: createAchievementType
+      tags:
+        - Achievement Types
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: Name of the achievement
+      responses:
+        '201':
+          description: Achievement type created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementType'
+        '403':
+          description: Not a team member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams/{team_id}/claims:
+    get:
+      summary: List claims for a team
+      operationId: listClaims
+      tags:
+        - Claims
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - approved
+              - rejected
+              - expired
+            default: pending
+          description: Filter claims by status
+      responses:
+        '200':
+          description: List of claims
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Claim'
+        '403':
+          description: Not a team member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a new claim
+      operationId: createClaim
+      tags:
+        - Claims
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - claimed_user_id
+                - achievement_type_id
+                - quantity
+              properties:
+                claimed_user_id:
+                  type: string
+                  format: uuid
+                  description: User being claimed against
+                achievement_type_id:
+                  type: string
+                  format: uuid
+                  description: Type of achievement
+                quantity:
+                  type: integer
+                  minimum: 1
+                  description: Amount of currency owed
+      responses:
+        '201':
+          description: Claim created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          description: Invalid input or cannot claim yourself
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not a team member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team, user, or achievement type not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /claims/{claim_id}/votes:
+    post:
+      summary: Cast a vote on a claim
+      operationId: castVote
+      tags:
+        - Claims
+      parameters:
+        - name: claim_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+                  enum:
+                    - approve
+                    - reject
+                  description: Vote value
+      responses:
+        '200':
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claim_id:
+                    type: string
+                    format: uuid
+                  value:
+                    type: string
+                  claim_status:
+                    type: string
+                    description: New status of the claim after voting
+        '400':
+          description: Invalid claim status or input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Claim not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams/{team_id}/debts:
+    get:
+      summary: Get debt leaderboard for a team
+      operationId: getDebts
+      tags:
+        - Debts
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Debt leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Debt'
+        '403':
+          description: Not a team member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams/{team_id}/settlements:
+    post:
+      summary: Settle a member's debt
+      operationId: createSettlement
+      tags:
+        - Debts
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - debtor_id
+              properties:
+                debtor_id:
+                  type: string
+                  format: uuid
+                  description: User whose debt to settle
+      responses:
+        '200':
+          description: Debt settled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+        '403':
+          description: Not a team member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
