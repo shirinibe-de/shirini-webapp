@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shirini Bede — Social Debt Tracker",
+  title: "ShiriniBe-De — Social Debt Tracker",
   description: "Track social debts (shirini) in your team with a democratic claim-and-vote system",
 };
 

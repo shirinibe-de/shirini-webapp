@@ -1,4 +1,4 @@
-// All domain types for Shirini Bede app
+// All domain types for ShiriniBe-De app
 
 export interface User {
   id: string

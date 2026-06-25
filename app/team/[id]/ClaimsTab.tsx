@@ -151,54 +151,55 @@ export function ClaimsTab({ teamId }: ClaimsTabProps) {
   return (
     <div>
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-          {error}
+        <div className="mb-6 p-4 backdrop-blur-md bg-red-500/20 border border-red-400/40 rounded-xl text-red-200 flex items-start gap-3">
+          <span>⚠️</span>
+          <span>{error}</span>
         </div>
       )}
 
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Pending Claims</h3>
+        <h3 className="text-lg font-semibold text-white">Pending Claims</h3>
         <Button onClick={() => setShowNewClaimModal(true)}>+ New Claim</Button>
       </div>
 
       {claims.length === 0 ? (
-        <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-gray-600">No pending claims yet</p>
+        <div className="text-center py-8 backdrop-blur-lg bg-white/5 border border-white/10 rounded-xl">
+          <p className="text-indigo-200">No pending claims yet</p>
         </div>
       ) : (
         <div className="space-y-4">
           {claims.map(claim => (
-            <div key={claim.id} className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition">
+            <div key={claim.id} className="p-4 backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl hover:bg-white/[0.15] hover:border-white/30 transition">
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <Avatar name={claim.claimer.name} avatar_url={claim.claimer.avatar_url} size="sm" />
-                    <span className="text-sm text-gray-600">{claim.claimer.name}</span>
-                    <span className="text-gray-400">→</span>
+                    <span className="text-sm text-indigo-200">{claim.claimer.name}</span>
+                    <span className="text-indigo-400">→</span>
                     <Avatar name={claim.claimed_user.name} avatar_url={claim.claimed_user.avatar_url} size="sm" />
-                    <span className="text-sm text-gray-600">{claim.claimed_user.name}</span>
+                    <span className="text-sm text-indigo-200">{claim.claimed_user.name}</span>
                   </div>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-white">
                     {claim.achievement_type.name} ({claim.quantity}x)
                   </p>
                 </div>
                 <Badge status={claim.status} />
               </div>
 
-              <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded">
+              <div className="flex items-center justify-between mb-4 p-3 backdrop-blur-lg bg-white/5 rounded-lg">
                 <div className="flex gap-6">
                   <div>
-                    <p className="text-sm text-gray-600">Approve</p>
-                    <p className="text-lg font-semibold text-green-600">{claim.votes.approve}</p>
+                    <p className="text-sm text-indigo-200">Approve</p>
+                    <p className="text-lg font-semibold text-emerald-400">{claim.votes.approve}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Reject</p>
-                    <p className="text-lg font-semibold text-red-600">{claim.votes.reject}</p>
+                    <p className="text-sm text-indigo-200">Reject</p>
+                    <p className="text-lg font-semibold text-red-400">{claim.votes.reject}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Time remaining</p>
-                  <p className="text-lg font-mono text-gray-900">{countdowns[claim.id] || '...'}</p>
+                  <p className="text-sm text-indigo-200">Time remaining</p>
+                  <p className="text-lg font-mono text-indigo-100">{countdowns[claim.id] || '...'}</p>
                 </div>
               </div>
 

@@ -16,19 +16,19 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const baseClasses = 'font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+  const baseClasses = 'font-semibold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-400/50'
 
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800',
-    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400',
-    danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
-    ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 active:bg-gray-200',
+    primary: 'backdrop-blur-xl bg-indigo-500/40 border border-indigo-400/50 text-white hover:bg-indigo-500/60 hover:border-indigo-300/80 shadow-lg hover:shadow-xl hover:shadow-indigo-500/20',
+    secondary: 'backdrop-blur-lg bg-white/20 border border-white/30 text-white hover:bg-white/30',
+    danger: 'backdrop-blur-xl bg-red-500/40 border border-red-400/50 text-white hover:bg-red-500/60 hover:border-red-300/80 shadow-lg hover:shadow-red-500/20',
+    ghost: 'backdrop-blur-sm bg-white/5 border border-white/20 text-indigo-200 hover:bg-white/10 hover:border-white/40',
   }
 
   const sizeClasses = {
-    sm: 'px-3 py-1 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
+    sm: 'px-3 py-1.5 text-sm',
+    md: 'px-5 py-2.5 text-base',
+    lg: 'px-7 py-3 text-lg',
   }
 
   return (
@@ -37,7 +37,7 @@ export function Button({
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     >
-      {loading ? '...' : children}
+      {loading ? '⏳' : children}
     </button>
   )
 }

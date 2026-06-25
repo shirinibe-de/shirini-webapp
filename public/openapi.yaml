@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
-  title: Shirini Bede API
+  title: ShiriniBe-De API
   description: |
     A REST API for tracking social debts (shirini) in teams.
 
-    Shirini Bede is a fun web app for programmer teams to track social debts — called *shirini* —
+    ShiriniBe-De is a fun web app for programmer teams to track social debts — called *shirini* —
     when team members achieve something worth celebrating (first deploy, new phone, etc.).
   version: 1.0.0
   contact:
-    name: Shirini Bede
+    name: ShiriniBe-De
     url: https://github.com/shirinibe-de
 
 servers:

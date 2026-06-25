@@ -39,10 +39,10 @@ export default function InvitePage() {
     if (!user) {
       const useMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
       if (useMock) {
-        // In mock mode, simulate OAuth
+        // In mock mode, simulate OAuth by storing a mock token and reloading
         const mockToken = 'mock_jwt_token_' + Math.random().toString(36).substring(7)
         localStorage.setItem('shirini_jwt', mockToken)
-        // Reload to let AuthProvider pick up the token
+        // Hard reload to let AuthProvider mount fresh with the token
         window.location.href = window.location.href
       } else {
         // In real mode, redirect to the actual OAuth endpoint

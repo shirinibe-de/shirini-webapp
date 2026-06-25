@@ -83,12 +83,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <header className="bg-white shadow">
+    <div className="min-h-full">
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/10 border-b border-white/20 rounded-b-2xl">
         <div className="max-w-6xl mx-auto px-4 py-6 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">شیرینی بده</h1>
-            <p className="text-gray-600 text-sm">Welcome, {user.name}!</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">ShiriniBe-De</h1>
+            <p className="text-indigo-200 text-sm mt-1">Welcome, <span className="text-indigo-100 font-semibold">{user.name}</span>!</p>
           </div>
           <Button
             variant="ghost"
@@ -97,29 +97,37 @@ export default function Home() {
               router.push('/')
             }}
           >
-            Sign Out
+            👋 Sign Out
           </Button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900">Your Teams</h2>
-          <Button onClick={() => setShowCreateModal(true)}>Create Team</Button>
+      <main className="max-w-6xl mx-auto px-4 py-12">
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <h2 className="text-4xl font-bold text-white">Your Teams</h2>
+            <p className="text-indigo-200 mt-2">Manage your team's shirini debts</p>
+          </div>
+          <Button onClick={() => setShowCreateModal(true)}>➕ Create Team</Button>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {error}
+          <div className="mb-6 p-4 backdrop-blur-md bg-red-500/20 border border-red-400/40 rounded-xl text-red-200 flex items-start gap-3">
+            <span>⚠️</span>
+            <span>{error}</span>
           </div>
         )}
 
         {loadingTeams ? (
-          <div className="text-center py-12 text-gray-600">Loading teams...</div>
+          <div className="text-center py-16">
+            <div className="inline-block animate-spin text-indigo-400 text-3xl mb-4">⏳</div>
+            <p className="text-indigo-200">Loading teams...</p>
+          </div>
         ) : teams.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <p className="text-gray-600 mb-6">You're not in any teams yet</p>
-            <p className="text-sm text-gray-500 mb-6">
+          <div className="text-center py-16 backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl">
+            <div className="text-5xl mb-4">🎯</div>
+            <p className="text-white mb-2 text-lg font-semibold">You're not in any teams yet</p>
+            <p className="text-indigo-200 mb-8">
               Create a team to get started or ask a teammate for an invite link
             </p>
             <Button onClick={() => setShowCreateModal(true)}>Create Your First Team</Button>
@@ -129,18 +137,18 @@ export default function Home() {
             {teams.map((team) => (
               <div
                 key={team.id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
+                className="group backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl hover:bg-white/[0.15] hover:border-white/30 transition-all duration-300 cursor-pointer overflow-hidden"
                 onClick={() => router.push(`/team/${team.id}`)}
               >
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{team.name}</h3>
-                  <p className="text-sm text-gray-600 mb-4">Currency: {team.currency}</p>
+                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-200 transition-colors">{team.name}</h3>
+                  <p className="text-sm text-indigo-200 mb-6">💱 Currency: <span className="text-indigo-100 font-semibold">{team.currency}</span></p>
                   <div className="flex gap-2">
                     <Button variant="secondary" size="sm" className="flex-1" onClick={(e) => {
                       e.stopPropagation()
                       router.push(`/team/${team.id}`)
                     }}>
-                      View Team
+                      📊 View Team
                     </Button>
                     <Button
                       variant="ghost"
@@ -151,7 +159,7 @@ export default function Home() {
                         copyInviteLink(team.id, inviteToken)
                       }}
                     >
-                      📋 Copy Invite
+                      📋
                     </Button>
                   </div>
                 </div>

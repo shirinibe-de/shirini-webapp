@@ -20,10 +20,11 @@ export default function Home() {
     const useMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 
     if (useMock) {
-      // In mock mode, simulate OAuth by storing a mock token
+      // In mock mode, simulate OAuth by storing a mock token and reloading
       const mockToken = 'mock_jwt_token_' + Math.random().toString(36).substring(7)
       localStorage.setItem('shirini_jwt', mockToken)
-      router.push('/home')
+      // Hard reload so AuthProvider mounts fresh with the token
+      window.location.href = '/home'
     } else {
       // In real mode, redirect to the actual OAuth endpoint
       const redirectUri = `${window.location.origin}/auth/callback`
@@ -34,32 +35,42 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="text-lg text-gray-600">Loading...</div>
+          <div className="text-lg text-indigo-300 animate-pulse">Loading...</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="flex h-full items-center justify-center">
       <div className="text-center max-w-md mx-auto px-6">
-        <h1 className="text-5xl font-bold mb-4 text-gray-900">شیرینی بده</h1>
-        <h2 className="text-3xl font-semibold mb-6 text-gray-800">Shirini Bede</h2>
-        <p className="text-lg text-gray-700 mb-8">
-          Track social debts in your team with a democratic claim-and-vote system
+        <div className="mb-8">
+          <h1 className="text-7xl font-black bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 drop-shadow-lg">ShiriniBe-De</h1>
+          <div className="w-24 h-1 bg-gradient-to-r from-indigo-400 to-purple-400 mx-auto rounded-full blur-sm opacity-70"></div>
+        </div>
+
+        <p className="text-xl text-indigo-200 mb-2 leading-relaxed font-medium">
+          Track social debts in your team
         </p>
+        <p className="text-lg text-indigo-300/80 mb-10">
+          with a democratic claim-and-vote system
+        </p>
+
         <Button
           onClick={handleSignIn}
           size="lg"
           className="w-full"
         >
-          Sign in with Google
+          🔐 Sign in with Google
         </Button>
-        <p className="text-sm text-gray-600 mt-8">
-          A fun way to remember who owes shirini to the team
-        </p>
+
+        <div className="mt-12 backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6">
+          <p className="text-sm text-indigo-100 leading-relaxed">
+            A fun way to remember who owes <span className="font-semibold text-transparent bg-gradient-to-r from-amber-300 to-pink-300 bg-clip-text">shirini</span> to the team
+          </p>
+        </div>
       </div>
     </div>
   )
