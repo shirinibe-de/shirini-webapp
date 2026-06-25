@@ -1,0 +1,87 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for console logs in production code
+        run: |
+          if grep -r "console\.\(log\|warn\|error\)" app/*/[^/]*\.tsx --include="*.tsx" | grep -v "\.test\." | grep -v "test/"; then
+            echo "⚠️  Warning: Found console statements in production code"
+            exit 0
+          fi
+
+      - name: Check for TODO/FIXME comments
+        run: |
+          echo "Checking for TODO/FIXME comments..."
+          TODO_COUNT=$(grep -r "TODO\|FIXME" app/ lib/ components/ --include="*.tsx" --include="*.ts" | wc -l)
+          if [ "$TODO_COUNT" -gt 0 ]; then
+            echo "Found $TODO_COUNT TODO/FIXME comments:"
+            grep -r "TODO\|FIXME" app/ lib/ components/ --include="*.tsx" --include="*.ts" || true
+          fi
+
+      - name: Check for unused variables
+        run: npx tsc --noEmit --noUnusedLocals --noUnusedParameters
+        continue-on-error: true
+
+      - name: Bundle size check
+        run: |
+          npm run build
+          BUNDLE_SIZE=$(du -sh .next | awk '{print $1}')
+          echo "📦 Bundle size: $BUNDLE_SIZE"
+
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for outdated packages
+        run: |
+          echo "Checking for outdated packages..."
+          npm outdated || echo "All packages are up to date"
+
+      - name: Security audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: License check
+        run: |
+          echo "Checking dependencies for license compatibility..."
+          npx license-report --csv
+        continue-on-error: true

@@ -1,0 +1,145 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title format
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title;
+
+            // Check if title follows conventional commits
+            const validPrefixes = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'chore'];
+            const hasValidPrefix = validPrefixes.some(prefix => title.startsWith(`${prefix}:`));
+
+            if (!hasValidPrefix && !title.includes('WIP')) {
+              core.warning(`PR title should follow conventional commits format: ${validPrefixes.join(', ')}: description`);
+            }
+
+      - name: Check for breaking changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+
+            if (body.includes('BREAKING CHANGE')) {
+              core.notice('⚠️ This PR contains breaking changes');
+            }
+
+  size-check:
+    name: File Change Size Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed files size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+
+            try {
+              const diff = execSync('git diff --name-status origin/main...HEAD').toString();
+              const lines = diff.split('\n').filter(l => l);
+
+              let addedSize = 0;
+              let deletedSize = 0;
+
+              for (const line of lines) {
+                const [status, file] = line.split('\t');
+
+                if (status === 'A' && fs.existsSync(file)) {
+                  addedSize += fs.statSync(file).size;
+                } else if (status === 'M' && fs.existsSync(file)) {
+                  const size = fs.statSync(file).size;
+                  addedSize += size > 5120 ? 5120 : size; // Cap modified file additions
+                }
+              }
+
+              const addedKB = (addedSize / 1024).toFixed(2);
+
+              console.log(`📊 Changes summary:`);
+              console.log(`   Files changed: ${lines.length}`);
+              console.log(`   Net size increase: ${addedKB}KB`);
+
+              if (addedSize > 1024 * 100) { // 100KB threshold
+                core.warning('⚠️ Large PR detected (>100KB changes). Consider breaking into smaller PRs.');
+              }
+            } catch (error) {
+              console.log('Could not analyze diff:', error.message);
+            }
+
+  labels:
+    name: Auto-label PR
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Auto-label based on files changed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+
+            const pr = context.payload.pull_request;
+            const labels = [];
+
+            try {
+              const files = execSync('git diff --name-only origin/main...HEAD').toString().split('\n').filter(f => f);
+
+              if (files.some(f => f.startsWith('components/'))) {
+                labels.push('component');
+              }
+              if (files.some(f => f.startsWith('lib/'))) {
+                labels.push('library');
+              }
+              if (files.some(f => f.includes('test') || f.includes('spec'))) {
+                labels.push('test');
+              }
+              if (files.some(f => f.endsWith('.md'))) {
+                labels.push('documentation');
+              }
+              if (pr.title.startsWith('feat')) {
+                labels.push('feature');
+              }
+              if (pr.title.startsWith('fix')) {
+                labels.push('bug');
+              }
+
+              if (labels.length > 0) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: [...new Set(labels)]
+                });
+                core.info(`Added labels: ${labels.join(', ')}`);
+              }
+            } catch (error) {
+              core.warning('Could not add labels:', error.message);
+            }
