@@ -17,20 +17,9 @@ export default function Home() {
   }, [loading, router])
 
   const handleSignIn = () => {
-    const useMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
-
-    if (useMock) {
-      // In mock mode, simulate OAuth by storing a mock token and reloading
-      const mockToken = 'mock_jwt_token_' + Math.random().toString(36).substring(7)
-      localStorage.setItem('shirini_jwt', mockToken)
-      // Hard reload so AuthProvider mounts fresh with the token
-      window.location.href = '/home'
-    } else {
-      // In real mode, redirect to the actual OAuth endpoint
-      const redirectUri = `${window.location.origin}/auth/callback`
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-      window.location.href = `${apiUrl}/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`
-    }
+    const redirectUri = `${window.location.origin}/auth/callback`
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+    window.location.href = `${apiUrl}/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`
   }
 
   if (loading) {
