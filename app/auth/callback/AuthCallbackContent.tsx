@@ -1,11 +1,11 @@
+
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { setToken } from '@/lib/auth-storage'
 
 export function AuthCallbackContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
 
@@ -18,23 +18,26 @@ export function AuthCallbackContent() {
       return
     }
 
-    if (token) {
-      try {
-        setToken(token)
-        router.replace('/home')
-      } catch (err) {
-        setError('Failed to store authentication token')
-      }
-    } else {
+    if (!token) {
       setError('No token received from authentication')
+      return
     }
-  }, [searchParams, router])
+
+    try {
+      setToken(token)
+      window.location.replace('/home')
+    } catch (err) {
+      setError('Failed to store authentication token')
+    }
+  }, [searchParams])
 
   if (error) {
     return (
       <div className="flex h-full items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
         <div className="text-center max-w-md mx-auto px-6">
-          <h1 className="text-3xl font-bold mb-4 text-gray-900">Authentication Error</h1>
+          <h1 className="text-3xl font-bold mb-4 text-gray-900">
+            Authentication Error
+          </h1>
           <p className="text-lg text-red-700 mb-8">{error}</p>
           <a
             href="/"
@@ -50,7 +53,9 @@ export function AuthCallbackContent() {
   return (
     <div className="flex h-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="text-center max-w-md mx-auto px-6">
-        <h1 className="text-3xl font-bold mb-4 text-gray-900">Signing you in...</h1>
+        <h1 className="text-3xl font-bold mb-4 text-gray-900">
+          Signing you in...
+        </h1>
         <div className="animate-pulse">
           <div className="h-2 bg-blue-600 rounded-full"></div>
         </div>
